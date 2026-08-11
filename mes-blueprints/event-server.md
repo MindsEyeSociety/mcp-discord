@@ -125,3 +125,57 @@ scheduled events, invites, emoji.
   Not blocking role/channel creation, only the final copy and mesbot config.
 - **Event voice/game room list** — depends on the event's actual format,
   not yet specified.
+
+## As applied (2026-08-11)
+
+Roles, categories, and channels above are live. Role creation landed the
+hierarchy correctly on the first pass — Discord inserted each new role
+directly below the previous one, so no `discord_edit_role` position fixup
+was needed:
+
+| Role | ID | Position |
+|---|---|---|
+| `MES Server Architect` | `1536582840790032415` | 5 (top) |
+| `Event Staff` | `1536587020648849448` | 4 |
+| `Moderator` | `1536587041343672411` | 3 |
+| `Attendee` | `1536587065104269372` | 2 |
+| `Member` | `1536587149477158963` | 1 |
+| `@everyone` | `1536582623139201164` | 0 |
+
+`MESBot`'s own role does not exist yet — appears in Phase 5.
+
+| Category | ID |
+|---|---|
+| Lobby | `1536587477161213973` |
+| Members | `1536587491769843762` |
+| Event | `1536587524544143504` |
+| Staff | `1536587543926145044` |
+
+All 11 planned text channels created under their categories (IDs omitted
+here — see `discord_get_server_info` for the live list). `#welcome`'s
+copy is posted with `[Zeffy link — TBD]` and `[link to governing docs —
+TBD]` placeholders still open, per the item above.
+
+**Deviation from the original design:** rather than denying `ViewChannel`
+on `@everyone`'s guild-wide base permissions, access control was
+implemented entirely through **category-level overwrites** — `@everyone`
+gets an explicit `ViewChannel` deny on Members/Event/Staff (Lobby is left
+untouched, visible by guild default), with explicit allows layered on top
+for the roles that should see each category. This avoids having to also
+re-grant `SendMessages`/etc. everywhere, since the guild-wide baseline
+permissions were never touched. Three additional **channel-level**
+`SendMessages` denies make the three "staff-post-only" channels read-only:
+`@everyone` on `#welcome`, `Member` on `#announcements`, `Attendee` on
+`#event-announcements`.
+
+**Cleanup:** Discord's auto-created default channels/categories (`Text
+Channels` → `#general`, `Voice Channels` → voice `General`) were deleted —
+they weren't part of the blueprint and the duplicate `#general` name was
+confusing next to the Members-category one.
+
+**Not yet verified:** the permission-overwrite matrix itself — `mcp-discord`
+has no read-back tool (confirmed in the existing-server audit), so the 14
+`discord_set_channel_permissions` calls above are confirmed only by their
+individual "success" responses, not by re-reading the applied state. Spot-
+check in the Discord UI, or build the reactive `discord_get_channel_permissions`
+patch flagged in `MES-NOTES.md`, before relying on this for the event.
