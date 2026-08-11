@@ -216,3 +216,72 @@ Zeffy ticketing link don't exist yet. The `#welcome` copy's two `TBD`
 placeholders are also still open, pending the same information. Run
 `!setevent <portal_event_id> Attendee` and fill the placeholders once both
 exist.
+
+## Phase 4b — Venue categories and roles (as applied, 2026-08-11)
+
+Three concurrent-game venues added: `LotN` (vampire), `Apoc` (werewolf),
+`SPI`, each with a `Lead`/`Second`/`Staff` staff tier and a `Player`
+visibility role. Full design in the plan file
+(`i-want-to-setup-scalable-kurzweil.md`, Phase 4b) — this section records
+what actually landed.
+
+**Role hierarchy** — inserted between `Moderator` and the pre-existing
+`Attendee`/`Member`, which had to move down to make room:
+
+| Position | Role |
+|---|---|
+| 18 | `MES Server Architect` |
+| 17 | `MESBot` |
+| 16 | `Event Staff` |
+| 15 | `Moderator` |
+| 14–6 | `LotN Lead/Second/Staff`, `Apoc Lead/Second/Staff`, `SPI Lead/Second/Staff` (venue-grouped, in that order) |
+| 5 | `Attendee` (moved down from 14) |
+| 4–2 | `LotN Player`, `Apoc Player`, `SPI Player` |
+| 1 | `Member` (moved down from 13) |
+| 0 | `@everyone` |
+
+**Bug caught mid-build:** the 9 `Lead`/`Second`/`Staff` roles were
+initially created with their permissions (`ManageChannels`,
+`ManageMessages`, etc.) as **guild-wide base permissions** on the role —
+which would have let e.g. `LotN Lead` manage channels in *every* category,
+not just their own. Caught before any category overwrites were applied;
+fixed with 9 `discord_edit_role` calls setting `permissions: []`, so all
+elevated permissions now come **only** from the category-scoped overwrites
+below. Worth remembering for any future role that's meant to be
+category-scoped: `discord_create_role`'s `permissions` param is always
+guild-wide — scoped permissions can only be granted via
+`discord_set_channel_permissions` on the specific category/channel.
+
+**Category overwrites** (mirrors the Members/Event/Staff pattern — deny
+`@everyone`, allow specific roles), applied identically to all three venue
+categories (`LotN` `1536601540876304437`, `Apoc` `1536601542583517184`,
+`SPI` `1536601543183179822`):
+
+| Role | Allow |
+|---|---|
+| `@everyone` | — (deny `ViewChannel`) |
+| `<Venue> Player` | `ViewChannel` |
+| `<Venue> Lead` / `<Venue> Second` | `ViewChannel`, `ManageChannels` |
+| `<Venue> Staff` | `ViewChannel`, `ManageMessages`, `ManageThreads`, `MuteMembers`, `DeafenMembers`, `MoveMembers` |
+| `Event Staff` / `Moderator` | `ViewChannel` (oversight into every venue) |
+
+`SendMessages`/`ReadMessageHistory` aren't set explicitly anywhere here —
+same as the original Members/Event/Staff categories, they're inherited
+from `@everyone`'s untouched guild-wide base permissions once `ViewChannel`
+makes the category visible.
+
+**Channels**: `#lotn-ooc`, `#lotn-questions`, `#apoc-ooc`,
+`#apoc-questions`, `#spi-ooc`, `#spi-questions` — 2 per venue, minimal
+starter set per the locked decision. `Lead`/`Second` are expected to build
+out IC/game rooms themselves using their `ManageChannels` grant.
+`#role-requests` created in the existing **Event** category (not a new
+category) with a holding message explaining self-assignment is deferred —
+no reaction-role bot in this stack yet; venue roles are assigned manually
+by an admin/the Architect bot via `discord_assign_role` for now.
+
+**Verified**: `discord_get_server_info` after all changes shows 7
+categories / 18 text channels total, all under correct parents;
+`discord_list_roles` confirms the 19-role hierarchy above exactly. Same
+caveat as Phase 4 applies — the category overwrite matrix itself has no
+programmatic read-back (`mcp-discord` gap), confirmed only by each
+`discord_set_channel_permissions` call's individual success response.
