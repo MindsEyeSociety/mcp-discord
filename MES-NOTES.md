@@ -56,3 +56,22 @@ tool it adds/changes.
 
 `DISCORD_TOKEN` lives in `.env` (gitignored), loaded via `dotenv`. Never
 commit it, paste it into chat, or add it to `.claude.json`.
+
+## Architect bot
+
+Discord application "MES Server Architect", Client ID `1536579898934689802`.
+Private app (Public Bot off, Install Link set to None on the Installation
+tab) — not discoverable or self-installable by anyone else.
+
+Invite link (Administrator, `bot` scope only — not a secret, but only use it
+to add the bot to servers you control, since it grants Administrator on
+whatever guild it's used in):
+
+```
+https://discord.com/oauth2/authorize?client_id=1536579898934689802&permissions=8&integration_type=0&scope=bot
+```
+
+Per the build-out plan: invite to the existing server for the audit (Phase 3),
+remove Administrator there once the audit export is written, invite to the
+new event server for build-out (Phase 4), then kick the bot from both once
+build-out is signed off (Phase 7).
