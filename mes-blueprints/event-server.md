@@ -179,3 +179,40 @@ has no read-back tool (confirmed in the existing-server audit), so the 14
 individual "success" responses, not by re-reading the applied state. Spot-
 check in the Discord UI, or build the reactive `discord_get_channel_permissions`
 patch flagged in `MES-NOTES.md`, before relying on this for the event.
+
+## Phase 5 — mesbot onboarding (2026-08-11)
+
+mesbot was invited by hand (bots can't add other bots). Two gaps surfaced
+that the original blueprint didn't anticipate, since mesbot's role didn't
+exist yet when it was written:
+
+1. **mesbot's role landed at position 1** — below `Attendee`/`Member`, same
+   bottom-of-hierarchy behavior observed for the Architect bot on Con
+   Discordia. Fixed with `discord_edit_role` (position 5, directly below
+   `MES Server Architect`). Confirmed via `discord_list_roles`: hierarchy
+   now reads exactly as designed — `MES Server Architect`(6) → `MESBot`(5)
+   → `Event Staff`(4) → `Moderator`(3) → `Attendee`(2) → `Member`(1) →
+   `@everyone`(0).
+2. **mesbot's role had no visibility into the `Staff` category** — the
+   category overwrites only granted `Event Staff`/`Moderator`, and mesbot
+   needs to see and post in `#bot-log`. Added a `ViewChannel`+`SendMessages`
+   allow overwrite for the `MESBot` role (`1536594921148907533`) on the
+   `Staff` category. Add the same pattern for the `MESBot` role on any
+   future category it needs to post into.
+
+Since mesbot doesn't filter out bot-authored messages (only messages from
+*itself*; see `on_message` in `main.py`) and its admin commands check only
+`guild_permissions.administrator`, the Architect bot — which holds
+Administrator — was able to drive configuration directly instead of
+requiring commands to be typed by a human:
+
+- `!role Member` → `Role found: Member (ID: 1536587149477158963)`
+- `!setver <#1536588152565796934>` (sent in `#verify`) → `✅ Verification channel set to #verify`
+- `!setlog` (sent with no args, directly in `#bot-log`, using the
+  current-channel default) → `Logging channel set to #bot-log`
+
+**`!setevent` is intentionally not yet run** — the portal event and its
+Zeffy ticketing link don't exist yet. The `#welcome` copy's two `TBD`
+placeholders are also still open, pending the same information. Run
+`!setevent <portal_event_id> Attendee` and fill the placeholders once both
+exist.
